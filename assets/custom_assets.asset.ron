@@ -1,0 +1,5 @@
+({
+    "slime": DirectionalAnimation ( DirectionalAnimationAsset ( 
+        row_length: 100,
+    )),
+})

@@ -1,0 +1,26 @@
+{
+    "slime": {
+        "DirectionalAnimation": {
+            "Walking": {
+                "row_length": 4,
+                "frame_duration": 0.3
+            },
+            "Death": {
+                "row_length": 9,
+                "frame_duration": 0.2
+            }
+        }
+    },
+    "player": {
+        "DirectionalAnimation": {
+            "Idle": {
+                "row_length": 16,
+                "frame_duration": 0.3
+            },
+            "Walking": {
+                "row_length": 4,
+                "frame_duration": 0.3
+            }
+        }
+    }
+}

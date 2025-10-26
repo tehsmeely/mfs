@@ -1,0 +1,10 @@
+---
+source: src/core/directional_animation.rs
+expression: s
+---
+{
+  "row_lengths": {
+    "Walking": 4,
+    "Idle": 16
+  }
+}
