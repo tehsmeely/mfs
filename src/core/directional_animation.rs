@@ -29,18 +29,15 @@ impl Plugin for DirectionalAnimationPlugin {
 
 /// Direction component for entities that can face different directions
 #[derive(Component, Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Default)]
 pub enum Direction {
     UpLeft,
     UpRight,
     DownLeft,
+    #[default]
     DownRight,
 }
 
-impl Default for Direction {
-    fn default() -> Self {
-        Direction::DownRight
-    }
-}
 
 impl Direction {
     /// Get direction from velocity vector
@@ -169,9 +166,9 @@ impl AnimationIndices {
         self.current_offset += 1;
         if self.current_offset >= self.indices.len() {
             self.current_offset = 0;
-            return true;
+            true
         } else {
-            return false;
+            false
         }
     }
 
@@ -244,12 +241,11 @@ impl DirectionalAnimation {
         if let Some(new_texture) = self.state_textures.get(&state) {
             sprite.image = new_texture.clone();
         }
-        if let Some(new_atlas) = self.state_atlases.get(&state) {
-            if let Some(atlas) = &mut sprite.texture_atlas {
+        if let Some(new_atlas) = self.state_atlases.get(&state)
+            && let Some(atlas) = &mut sprite.texture_atlas {
                 atlas.layout = new_atlas.clone();
                 atlas.index = 0;
             }
-        }
         if let Some(frame_duration) = self.frame_durations.get(&state) {
             self.timer
                 .set_duration(Duration::from_secs_f32(*frame_duration));
@@ -295,13 +291,13 @@ fn velocity_state_transitions(
         } else {
             CharacterStateMode::Continuous(CharacterState::Walking)
         };
-        let can_change = match state.as_ref() {
-            &CharacterStateMode::OneShot {
+        let can_change = match *state.as_ref() {
+            CharacterStateMode::OneShot {
                 state: _,
                 interruptable,
                 on_end: _,
             } => interruptable,
-            &CharacterStateMode::Continuous(_) => true,
+            CharacterStateMode::Continuous(_) => true,
         };
         if can_change && *state != new_state {
             *state = new_state;
@@ -322,7 +318,7 @@ fn directional_animation_state_or_direction_change(
     >,
 ) {
     for (mut anim, state, direction, mut sprite, mut indices) in query.iter_mut() {
-        println!("Change: State: {:?}, Direction: {:?}", state, direction);
+        println!("Change: State: {state:?}, Direction: {direction:?}");
         let mut changed = false;
         if state.get_state() != anim.last_state {
             println!("Changing based on state");
@@ -365,24 +361,21 @@ fn directional_animation_tick(
         if anim.timer.just_finished() {
             // TODO: Consider moving out to an event?
             let frames_finished = indices.advance();
-            match (frames_finished, *state) {
-                (
+            if let (
                     true,
                     CharacterStateMode::OneShot {
                         state: _,
                         interruptable: _,
                         on_end: OnOneShotEnd::Die,
                     },
-                ) => {
-                    match death {
-                        Some(mut death) => *death = Death::Dead,
-                        None => {
-                            // This is bad?
-                            ()
-                        }
+                ) = (frames_finished, *state) {
+                match death {
+                    Some(mut death) => *death = Death::Dead,
+                    None => {
+                        // This is bad?
+                        
                     }
                 }
-                _ => (),
             }
             if let Some(atlas) = &mut sprite.texture_atlas {
                 atlas.index = indices.get_index();

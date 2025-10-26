@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use avian2d::prelude::*;
 use bevy::prelude::*;
-use rand;
 
 use crate::{
     GameState,
@@ -86,7 +85,7 @@ fn spawn_enemies(
 ) -> Result {
     for SpawnEnemy { global_position } in events.read() {
         let translation = global_position.extend(ENEMY_Z);
-        println!("Spawning enemy at {:?}", translation);
+        println!("Spawning enemy at {translation:?}");
         let animation_bundle = {
             let textures: HashMap<CharacterState, Handle<Image>> = [
                 (CharacterState::Walking, textures.slime.clone()),
@@ -99,7 +98,7 @@ fn spawn_enemies(
             directional_animation_bundle(
                 textures,
                 &mut texture_atlas_layouts,
-                &directional_animation_asset,
+                directional_animation_asset,
             )?
         };
         commands.spawn((

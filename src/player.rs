@@ -58,14 +58,14 @@ fn spawn(
         directional_animation_bundle(
             textures,
             &mut texture_atlas_layouts,
-            &directional_animation_asset,
+            directional_animation_asset,
         )?
     };
     println!("Custom asset loaded: {:?}", custom_assets.slime_animation);
     let slime_animation = directional_animations
         .get(&custom_assets.slime_animation)
         .cloned();
-    println!("Custom asset loaded: {:?}", slime_animation);
+    println!("Custom asset loaded: {slime_animation:?}");
     commands.spawn((
         animation_bundle,
         SupportsVelocityStateTransition,
@@ -103,11 +103,10 @@ fn move_player(
 
     let mut direction_vec = Vec2::ZERO;
     for action in Action::all_movements() {
-        if action_state.pressed(&action) {
-            if let Some(dir) = action.movement_direction() {
+        if action_state.pressed(&action)
+            && let Some(dir) = action.movement_direction() {
                 direction_vec += dir.as_vec2();
             }
-        }
     }
     let movements = direction_vec.normalize_or_zero() * time.delta_secs() * speed;
     linear_velocity.0 = movements;
@@ -129,8 +128,7 @@ fn player_shoot(
         let player_pos = transform.translation.truncate();
         let direction = (target - player_pos).normalize_or_zero();
         println!(
-            "Player shoot action detected. target: {:?}, direction: {:?}",
-            target, direction
+            "Player shoot action detected. target: {target:?}, direction: {direction:?}"
         );
         let speed = 70.0;
         let damage = 10.0;
@@ -157,26 +155,23 @@ fn collisions_with_player(
     let (player, mut player_health) = player_query.into_inner();
     let player_transform = transforms_query.get(player)?;
     for entity in collisions.entities_colliding_with(player) {
-        match possible_colliders.get_mut(entity) {
-            Ok((mut collides_with_player, mut forces)) => {
-                //Damage Player, if not collided recently
-                let now = time.elapsed();
-                let should_damage = match collides_with_player.last_collided {
-                    Some(last_time) => (now - last_time) > collides_with_player.damage_cooldown,
-                    None => true,
-                };
-                if should_damage {
-                    println!("Player collided with damaging entity!");
-                    player_health.current -= collides_with_player.damage;
-                    collides_with_player.last_collided = Some(now);
-                }
-                let entity_transform = transforms_query.get(entity)?;
-                let direction = (entity_transform.translation - player_transform.translation)
-                    .normalize_or_zero()
-                    .truncate();
-                forces.apply_linear_impulse(direction * 2000.0);
+        if let Ok((mut collides_with_player, mut forces)) = possible_colliders.get_mut(entity) {
+            //Damage Player, if not collided recently
+            let now = time.elapsed();
+            let should_damage = match collides_with_player.last_collided {
+                Some(last_time) => (now - last_time) > collides_with_player.damage_cooldown,
+                None => true,
+            };
+            if should_damage {
+                println!("Player collided with damaging entity!");
+                player_health.current -= collides_with_player.damage;
+                collides_with_player.last_collided = Some(now);
             }
-            Err(_) => (),
+            let entity_transform = transforms_query.get(entity)?;
+            let direction = (entity_transform.translation - player_transform.translation)
+                .normalize_or_zero()
+                .truncate();
+            forces.apply_linear_impulse(direction * 2000.0);
         }
     }
     Ok(())

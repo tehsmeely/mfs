@@ -107,7 +107,7 @@ fn projectile_collision_system(
         }) = entity_for_projectile_collision(event.collider1, event.collider2, &projectiles)
         {
             if enemies.get(hit_entity).is_ok() {
-                println!("Projectile hit Enemy {:?}", hit_entity);
+                println!("Projectile hit Enemy {hit_entity:?}");
                 let mut projectile = projectiles.get_mut(projectile_entity)?;
                 if projectile.pierce == 0 {
                     // Projectiles can trigger multiple collision events in a single frame, so
@@ -123,9 +123,9 @@ fn projectile_collision_system(
                     commands.entity(projectile_entity).despawn();
                 }
             } else if hit_entity == *player {
-                println!("Projectile hit Player {:?}", hit_entity);
+                println!("Projectile hit Player {hit_entity:?}");
             } else {
-                println!("Projectile hit something else {:?}", hit_entity);
+                println!("Projectile hit something else {hit_entity:?}");
             }
         }
     }

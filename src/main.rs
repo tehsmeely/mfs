@@ -72,7 +72,7 @@ fn main() {
         .add_plugins(RemoteHttpPlugin::default())
         .add_plugins(InputManagerPlugin::<input::Action>::default())
         .add_plugins(PhysicsPlugins::default().with_length_unit(20.0))
-        .add_plugins(PhysicsDebugPlugin::default())
+        .add_plugins(PhysicsDebugPlugin)
         .add_plugins(GamePlugin)
         .run();
 }

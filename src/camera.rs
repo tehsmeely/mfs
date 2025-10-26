@@ -35,13 +35,11 @@ fn follow_player(
 ) -> Result {
     // It's tolerable if player or camera is missing
     let enabled = true;
-    if enabled {
-        if let Ok(player_transform) = player_query.single() {
-            if let Ok(mut camera_transform) = camera_query.single_mut() {
+    if enabled
+        && let Ok(player_transform) = player_query.single()
+            && let Ok(mut camera_transform) = camera_query.single_mut() {
                 camera_transform.translation.x = player_transform.translation.x;
                 camera_transform.translation.y = player_transform.translation.y;
             }
-        }
-    }
     Ok(())
 }

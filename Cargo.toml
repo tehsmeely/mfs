@@ -20,4 +20,5 @@ serde = "1.0.228"
 bevy_common_assets = { version = "0.14.0", features = ["ron", "json"] }
 insta = "1.43.2"
 serde_json = "1.0.145"
+bevy_lunex = "0.5.0"
 
