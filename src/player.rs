@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
 use avian2d::prelude::*;
 use bevy::{prelude::*, window::PrimaryWindow};
@@ -10,15 +10,16 @@ use crate::{
     camera::{GAME_RENDER_LAYER, MainCamera},
     core::{
         body,
-        components::{CollidesWithPlayer, Health},
+        components::{CollidesWithPlayer, Health, ItemStore},
         directional_animation::{
             CharacterState, DirectionalAnimationAsset, SupportsVelocityStateTransition,
             directional_animation_bundle,
         },
     },
     input::Action,
-    level::{PlayerStart, SpawnPoint},
+    level::SpawnPoint,
     loading::TextureAssets,
+    projectile::Quiver,
 };
 
 pub struct PlayerPlugin;
@@ -36,7 +37,7 @@ impl Plugin for PlayerPlugin {
                 .run_if(in_state(GameState::Playing)),
         )
         .register_type::<Player>()
-        .add_observer(spawn2);
+        .add_observer(spawn);
     }
 }
 
@@ -87,6 +88,7 @@ fn spawn(
         Transform::from_translation(initial_translation),
         Collider::capsule(2.5, 5.0),
         body::body(body::BodyKind::Dynamic),
+        Quiver::new(10, Duration::from_secs(1)),
         GAME_RENDER_LAYER,
     ));
     Ok(())
@@ -114,14 +116,14 @@ fn move_player(
 
 fn player_shoot(
     mut commands: Commands,
-    query: Query<(&ActionState<Action>, &Transform), With<Player>>,
+    player_query: Single<(&ActionState<Action>, &Transform, &mut Quiver), With<Player>>,
     window: Single<&Window, With<PrimaryWindow>>,
     camera_query: Single<(&Camera, &GlobalTransform), With<MainCamera>>,
     textures: Res<TextureAssets>,
 ) -> Result {
-    let (action_state, transform) = query.single()?;
+    let (action_state, transform, mut quiver) = player_query.into_inner();
     let (camera, camera_transform) = *camera_query;
-    if action_state.just_pressed(&Action::Attack) {
+    if action_state.just_pressed(&Action::Attack) && quiver.try_take() {
         let target_screenspace = window.cursor_position().unwrap_or_default();
         let target = camera.viewport_to_world_2d(camera_transform, target_screenspace)?;
         let player_pos = transform.translation.truncate();

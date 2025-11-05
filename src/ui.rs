@@ -1,10 +1,10 @@
 use bevy::prelude::*;
 use bevy_egui::{
     EguiContexts, EguiPrimaryContextPass,
-    egui::{self, Align2, ProgressBar, Widget, WidgetText},
+    egui::{self, Align2, Color32, ProgressBar, Widget, WidgetText},
 };
 
-use crate::core::components::Health;
+use crate::{core::components::Health, projectile::Quiver};
 
 pub struct GameUiPlugin;
 
@@ -27,14 +27,33 @@ fn plain_window<'open>(title: impl Into<WidgetText>) -> bevy_egui::egui::Window<
 
 fn ui(
     mut context: EguiContexts,
-    player_health: Single<&Health, With<crate::player::Player>>,
+    player: Single<(&Health, &Quiver), With<crate::player::Player>>,
 ) -> Result {
+    let (health, quiver) = player.into_inner();
     plain_window("Player Info").show(context.ctx_mut()?, |ui| {
-        ProgressBar::new(player_health.pct())
-            .text(player_health.current.to_string())
+        ProgressBar::new(health.pct())
+            .text(health.current.to_string())
             .desired_width(100.0)
+            .fill(Color32::RED)
             .corner_radius(0)
             .ui(ui);
+        ProgressBar::new(quiver.pct())
+            .text(quiver.current().to_string())
+            .desired_width(100.0)
+            .fill(Color32::PURPLE)
+            .corner_radius(0)
+            .ui(ui);
+        match quiver.reload_pct() {
+            Some(pct) => {
+                ProgressBar::new(pct)
+                    .text("Reloading...")
+                    .desired_width(100.0)
+                    .fill(Color32::YELLOW)
+                    .corner_radius(0)
+                    .ui(ui);
+            }
+            None => {}
+        }
     });
     Ok(())
 }

@@ -8,7 +8,7 @@ pub struct LevelPlugin;
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(LdtkPlugin)
-            .register_ldtk_entity::<PlayerStart>("SpawnPoint")
+            .register_ldtk_entity::<SpawnPointBundle>("SpawnPoint")
             .register_ldtk_int_cell_for_layer::<FloorBundle>("Floor", 1)
             .insert_resource(LevelSelection::index(0))
             .add_systems(OnEnter(GameState::Playing), setup);
@@ -31,7 +31,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 pub struct SpawnPoint;
 
 #[derive(Bundle, Reflect, LdtkEntity)]
-pub struct PlayerStart {
+pub struct SpawnPointBundle {
     #[default]
     spawn_point: SpawnPoint,
     #[grid_coords]

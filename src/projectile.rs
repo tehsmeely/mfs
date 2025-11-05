@@ -16,14 +16,15 @@ pub struct ProjectileCollider;
 
 pub struct ProjectilePlugin;
 
-#[derive(Resource, Deref, DerefMut, Component)]
-pub struct ProjectileStore(ItemStore);
-
 impl Plugin for ProjectilePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (projectile_movement_system, projectile_collision_system),
+            (
+                projectile_movement_system,
+                projectile_collision_system,
+                Quiver::system,
+            ),
         )
         .add_message::<EnemyHit>()
         .register_type::<Projectile>()
@@ -136,4 +137,65 @@ fn projectile_collision_system(
         }
     }
     Ok(())
+}
+
+#[derive(Reflect, Component)]
+pub struct Quiver {
+    store: ItemStore,
+    reload_timer: Timer,
+}
+
+impl Quiver {
+    pub fn new(max_arrows: usize, reload_duration: std::time::Duration) -> Self {
+        let mut reload_timer = Timer::new(reload_duration, TimerMode::Once);
+        reload_timer.finish();
+        Quiver {
+            store: ItemStore::new(max_arrows),
+            reload_timer,
+        }
+    }
+
+    pub fn current(&self) -> usize {
+        self.store.current
+    }
+
+    pub fn is_reloading(&self) -> bool {
+        !self.reload_timer.is_finished()
+    }
+
+    pub fn reload_pct(&self) -> Option<f32> {
+        if self.is_reloading() {
+            Some(self.reload_timer.fraction())
+        } else {
+            None
+        }
+    }
+
+    pub fn pct(&self) -> f32 {
+        self.store.pct()
+    }
+
+    pub fn try_take(&mut self) -> bool {
+        let taken = self.store.try_take();
+
+        if taken && self.store.current == 0 {
+            info!("Quiver empty, starting reload timer");
+            self.reload_timer.reset();
+        }
+
+        taken
+    }
+
+    fn update(&mut self, time: &Res<Time>) {
+        self.reload_timer.tick(time.delta());
+        if self.reload_timer.just_finished() {
+            self.store.reset();
+        }
+    }
+
+    fn system(mut query: Query<&mut Self>, time: Res<Time>) {
+        for mut quiver in query.iter_mut() {
+            quiver.update(&time);
+        }
+    }
 }

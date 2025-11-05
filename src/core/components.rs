@@ -32,8 +32,16 @@ pub struct ItemStore {
 }
 
 impl ItemStore {
+    pub fn new(max: usize) -> Self {
+        ItemStore { current: max, max }
+    }
+
     pub fn pct(&self) -> f32 {
         self.current as f32 / self.max as f32
+    }
+
+    pub fn reset(&mut self) {
+        self.current = self.max;
     }
 
     pub fn try_take(&mut self) -> bool {
