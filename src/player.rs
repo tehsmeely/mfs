@@ -2,11 +2,12 @@ use std::collections::HashMap;
 
 use avian2d::prelude::*;
 use bevy::{prelude::*, window::PrimaryWindow};
+use bevy_ecs_ldtk::GridCoords;
 use leafwing_input_manager::prelude::ActionState;
 
 use crate::{
     GameState,
-    camera::MainCamera,
+    camera::{GAME_RENDER_LAYER, MainCamera},
     core::{
         body,
         components::{CollidesWithPlayer, Health},
@@ -16,6 +17,7 @@ use crate::{
         },
     },
     input::Action,
+    level::{PlayerStart, SpawnPoint},
     loading::TextureAssets,
 };
 
@@ -28,24 +30,30 @@ pub const PLAYER_Z: f32 = 100.0;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Playing), spawn)
-            .add_systems(
-                Update,
-                (move_player, player_shoot, collisions_with_player)
-                    .run_if(in_state(GameState::Playing)),
-            )
-            .register_type::<Player>();
+        app.add_systems(
+            Update,
+            (move_player, player_shoot, collisions_with_player)
+                .run_if(in_state(GameState::Playing)),
+        )
+        .register_type::<Player>()
+        .add_observer(spawn2);
     }
 }
 
 fn spawn(
+    add: On<Add, SpawnPoint>,
     mut commands: Commands,
+    grid_coords: Query<&GridCoords>,
     textures: Res<crate::loading::TextureAssets>,
     custom_assets: Res<crate::loading::CustomAssets>,
     mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
     directional_animations: Res<Assets<DirectionalAnimationAsset>>,
 ) -> Result {
-    println!("Spawning player");
+    println!("Spawning player at SpawnPoint");
+    let initial_translation = {
+        let coords = grid_coords.get(add.entity)?;
+        bevy_ecs_ldtk::utils::grid_coords_to_translation(*coords, IVec2::splat(8)).extend(PLAYER_Z)
+    };
     let animation_bundle = {
         let textures: HashMap<CharacterState, Handle<Image>> = [
             (CharacterState::Idle, textures.player_sheet_idle.clone()),
@@ -76,20 +84,10 @@ fn spawn(
             max: 10.0,
         },
         crate::input::input_map(),
-        Transform::from_xyz(0.0, 0.0, PLAYER_Z),
+        Transform::from_translation(initial_translation),
         Collider::capsule(2.5, 5.0),
         body::body(body::BodyKind::Dynamic),
-    ));
-
-    commands.spawn((
-        Sprite {
-            color: Color::srgb(0.7, 0.7, 0.8),
-            custom_size: Some(Vec2::new(25.0, 25.0)),
-            ..default()
-        },
-        Transform::from_xyz(200.0, 0.0, 99.0),
-        RigidBody::Static,
-        Collider::rectangle(25.0, 25.0),
+        GAME_RENDER_LAYER,
     ));
     Ok(())
 }
@@ -104,9 +102,10 @@ fn move_player(
     let mut direction_vec = Vec2::ZERO;
     for action in Action::all_movements() {
         if action_state.pressed(&action)
-            && let Some(dir) = action.movement_direction() {
-                direction_vec += dir.as_vec2();
-            }
+            && let Some(dir) = action.movement_direction()
+        {
+            direction_vec += dir.as_vec2();
+        }
     }
     let movements = direction_vec.normalize_or_zero() * time.delta_secs() * speed;
     linear_velocity.0 = movements;
@@ -127,9 +126,7 @@ fn player_shoot(
         let target = camera.viewport_to_world_2d(camera_transform, target_screenspace)?;
         let player_pos = transform.translation.truncate();
         let direction = (target - player_pos).normalize_or_zero();
-        println!(
-            "Player shoot action detected. target: {target:?}, direction: {direction:?}"
-        );
+        println!("Player shoot action detected. target: {target:?}, direction: {direction:?}");
         let speed = 70.0;
         let damage = 10.0;
         crate::projectile::spawn_projectile(

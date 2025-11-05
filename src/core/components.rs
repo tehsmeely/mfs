@@ -19,6 +19,33 @@ pub struct Health {
     pub max: f32,
 }
 
+impl Health {
+    pub fn pct(&self) -> f32 {
+        self.current / self.max
+    }
+}
+
+#[derive(Component, Reflect)]
+pub struct ItemStore {
+    pub current: usize,
+    pub max: usize,
+}
+
+impl ItemStore {
+    pub fn pct(&self) -> f32 {
+        self.current as f32 / self.max as f32
+    }
+
+    pub fn try_take(&mut self) -> bool {
+        if self.current > 0 {
+            self.current -= 1;
+            true
+        } else {
+            false
+        }
+    }
+}
+
 #[derive(Component, Reflect)]
 pub enum Death {
     Dying,

@@ -28,8 +28,7 @@ impl Plugin for DirectionalAnimationPlugin {
 }
 
 /// Direction component for entities that can face different directions
-#[derive(Component, Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[derive(Default)]
+#[derive(Component, Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum Direction {
     UpLeft,
     UpRight,
@@ -37,7 +36,6 @@ pub enum Direction {
     #[default]
     DownRight,
 }
-
 
 impl Direction {
     /// Get direction from velocity vector
@@ -242,10 +240,11 @@ impl DirectionalAnimation {
             sprite.image = new_texture.clone();
         }
         if let Some(new_atlas) = self.state_atlases.get(&state)
-            && let Some(atlas) = &mut sprite.texture_atlas {
-                atlas.layout = new_atlas.clone();
-                atlas.index = 0;
-            }
+            && let Some(atlas) = &mut sprite.texture_atlas
+        {
+            atlas.layout = new_atlas.clone();
+            atlas.index = 0;
+        }
         if let Some(frame_duration) = self.frame_durations.get(&state) {
             self.timer
                 .set_duration(Duration::from_secs_f32(*frame_duration));
@@ -318,15 +317,12 @@ fn directional_animation_state_or_direction_change(
     >,
 ) {
     for (mut anim, state, direction, mut sprite, mut indices) in query.iter_mut() {
-        println!("Change: State: {state:?}, Direction: {direction:?}");
         let mut changed = false;
         if state.get_state() != anim.last_state {
-            println!("Changing based on state");
             anim.set_texture_atlas_and_timer_of_state(&mut sprite, state.get_state());
             changed = true;
         }
         if *direction != anim.last_direction {
-            println!("Changing based on direction");
             anim.set_indices_of_direction(&mut indices, *direction);
             if let Some(atlas) = &mut sprite.texture_atlas {
                 atlas.index = indices.get_index();
@@ -362,18 +358,18 @@ fn directional_animation_tick(
             // TODO: Consider moving out to an event?
             let frames_finished = indices.advance();
             if let (
-                    true,
-                    CharacterStateMode::OneShot {
-                        state: _,
-                        interruptable: _,
-                        on_end: OnOneShotEnd::Die,
-                    },
-                ) = (frames_finished, *state) {
+                true,
+                CharacterStateMode::OneShot {
+                    state: _,
+                    interruptable: _,
+                    on_end: OnOneShotEnd::Die,
+                },
+            ) = (frames_finished, *state)
+            {
                 match death {
                     Some(mut death) => *death = Death::Dead,
                     None => {
                         // This is bad?
-                        
                     }
                 }
             }

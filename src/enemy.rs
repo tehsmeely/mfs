@@ -2,9 +2,12 @@ use std::collections::HashMap;
 
 use avian2d::prelude::*;
 use bevy::prelude::*;
+use bevy_ecs_ldtk::GridCoords;
+use rand::seq::IteratorRandom;
 
 use crate::{
     GameState,
+    camera::GAME_RENDER_LAYER,
     core::{
         body::{self, MovementConfig},
         components::{CollidesWithPlayer, Death, Health},
@@ -53,6 +56,7 @@ fn spawn_decider(
     time: Res<Time>,
     mut timer: Local<SpawnTimer>,
     mut event_writer: MessageWriter<SpawnEnemy>,
+    floor_query: Query<&GridCoords, With<crate::level::Floor>>,
     player_transform: Single<&Transform, With<Player>>,
     enemies: Query<Entity, With<Enemy>>,
 ) -> Result {
@@ -60,13 +64,26 @@ fn spawn_decider(
     if timer.tick(time.delta()).just_finished() {
         let num_enemies = enemies.iter().len();
         if num_enemies <= max_enemies {
-            let spawn_distance = 300.0;
-            let angle = rand::random::<f32>() * std::f32::consts::TAU;
-            let offset = Vec2::new(angle.cos(), angle.sin()) * spawn_distance;
-            let spawn_position = player_transform.translation.truncate() + offset;
-            event_writer.write(SpawnEnemy {
-                global_position: spawn_position,
-            });
+            // let spawn_distance = 300.0;
+            // let angle = rand::random::<f32>() * std::f32::consts::TAU;
+            // let offset = Vec2::new(angle.cos(), angle.sin()) * spawn_distance;
+            // let spawn_position = player_transform.translation.truncate() + offset;
+            // event_writer.write(SpawnEnemy {
+            //     global_position: spawn_position,
+            // });
+            let mut rng = rand::rng();
+            let chosen_floors = floor_query.iter().choose_multiple(&mut rng, 4);
+            for i in 0..chosen_floors.len() {
+                let floor = chosen_floors[i];
+                let spawn_position =
+                    bevy_ecs_ldtk::utils::grid_coords_to_translation(*floor, IVec2::splat(8));
+                if (spawn_position - player_transform.translation.truncate()).length() > 200.0 {
+                    event_writer.write(SpawnEnemy {
+                        global_position: spawn_position,
+                    });
+                    break;
+                }
+            }
         } else {
             info!("Too many enemies, not spawning ({})", num_enemies);
         }
@@ -123,6 +140,7 @@ fn spawn_enemies(
                 last_collided: None,
                 damage_cooldown: std::time::Duration::from_secs(1),
             },
+            GAME_RENDER_LAYER,
         ));
     }
     Ok(())

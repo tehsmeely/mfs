@@ -9,6 +9,8 @@ use avian2d::prelude::*;
 #[cfg(debug_assertions)]
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 
+use bevy_egui::EguiPlugin;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use leafwing_input_manager::plugin::InputManagerPlugin;
 
 mod camera;
@@ -20,6 +22,8 @@ mod level;
 mod loading;
 mod player;
 mod projectile;
+mod ui;
+mod walls;
 
 #[derive(States, Default, Clone, Eq, PartialEq, Debug, Hash)]
 enum GameState {
@@ -41,7 +45,14 @@ impl Plugin for GamePlugin {
                 level::LevelPlugin,
                 cursor::CursorPlugin,
                 projectile::ProjectilePlugin,
+                walls::WallPlugin,
+                ui::GameUiPlugin,
             ))
+            .add_plugins(
+                // N.b. This depends on the egui plugin that's auto-added by bevy_egui. If that is removed
+                // then it will need to be explicitly added here.
+                WorldInspectorPlugin::new(),
+            )
             .insert_resource(Gravity::ZERO)
             .insert_gizmo_config(
                 PhysicsGizmos::none().with_collider_color(Color::srgb(1.0, 0.0, 0.0)),
@@ -73,6 +84,7 @@ fn main() {
         .add_plugins(InputManagerPlugin::<input::Action>::default())
         .add_plugins(PhysicsPlugins::default().with_length_unit(20.0))
         .add_plugins(PhysicsDebugPlugin)
+        .add_plugins(EguiPlugin::default())
         .add_plugins(GamePlugin)
         .run();
 }

@@ -1,6 +1,8 @@
 use avian2d::prelude::*;
 use bevy::prelude::*;
 
+use crate::{camera::GAME_RENDER_LAYER, core::components::ItemStore};
+
 #[derive(Component, Reflect)]
 pub struct Projectile {
     velocity: Vec3,
@@ -13,6 +15,9 @@ pub struct Projectile {
 pub struct ProjectileCollider;
 
 pub struct ProjectilePlugin;
+
+#[derive(Resource, Deref, DerefMut, Component)]
+pub struct ProjectileStore(ItemStore);
 
 impl Plugin for ProjectilePlugin {
     fn build(&self, app: &mut App) {
@@ -54,6 +59,7 @@ pub fn spawn_projectile(
         CollisionEventsEnabled,
         Sensor,
         DebugRender::default(),
+        GAME_RENDER_LAYER,
     ));
 }
 
