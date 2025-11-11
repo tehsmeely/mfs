@@ -14,6 +14,9 @@ pub struct WallBundle {
     wall: Wall,
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Default, Component)]
+pub struct WallCollider;
+
 /// Spawns colldiers for the walls of a level
 ///
 /// You could just insert a ColliderBundle into the WallBundle,
@@ -163,12 +166,15 @@ pub fn spawn_wall_collision(
                     // 2. the colliders will be despawned automatically when levels unload
                     for wall_rect in wall_rects {
                         level.spawn_empty().insert((
+                            Name::new("Wall Collider"),
+                            WallCollider,
                             Collider::rectangle(
                                 (wall_rect.right as f32 - wall_rect.left as f32 + 1.)
                                     * grid_size as f32,
                                 (wall_rect.top as f32 - wall_rect.bottom as f32 + 1.)
                                     * grid_size as f32,
                             ),
+                            CollisionEventsEnabled,
                             RigidBody::Static,
                             Friction::new(1.0),
                             Transform::from_xyz(

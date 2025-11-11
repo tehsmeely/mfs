@@ -1,7 +1,10 @@
 use avian2d::prelude::*;
 use bevy::prelude::*;
 
-use crate::{camera::GAME_RENDER_LAYER, core::components::ItemStore};
+use crate::{
+    camera::GAME_RENDER_LAYER,
+    core::{body, components::ItemStore},
+};
 
 #[derive(Component, Reflect)]
 pub struct Projectile {
@@ -21,7 +24,7 @@ impl Plugin for ProjectilePlugin {
         app.add_systems(
             Update,
             (
-                projectile_movement_system,
+                //projectile_movement_system,
                 projectile_collision_system,
                 Quiver::system,
             ),
@@ -55,19 +58,14 @@ pub fn spawn_projectile(
             damage,
             pierce,
         },
+        LinearVelocity(velocity.truncate()),
         Name::new("Projectile"),
+        body::body(body::BodyKind::Dynamic),
         Collider::rectangle(12.0, 2.0),
-        CollisionEventsEnabled,
         Sensor,
-        DebugRender::default(),
+        //DebugRender::default(),
         GAME_RENDER_LAYER,
     ));
-}
-
-fn projectile_movement_system(mut query: Query<(&mut Transform, &Projectile)>, time: Res<Time>) {
-    for (mut transform, projectile) in query.iter_mut() {
-        transform.translation += projectile.velocity * time.delta_secs();
-    }
 }
 
 #[derive(Debug, Message, Reflect)]
@@ -104,6 +102,7 @@ fn projectile_collision_system(
     mut collisions: MessageReader<CollisionStart>,
     mut projectiles: Query<&mut Projectile>,
     enemies: Query<Entity, With<crate::enemy::Enemy>>,
+    walls: Query<Entity, With<crate::walls::WallCollider>>,
     player: Single<Entity, With<crate::player::Player>>,
     mut enemy_hits: MessageWriter<EnemyHit>,
 ) -> Result {
@@ -131,6 +130,10 @@ fn projectile_collision_system(
                 }
             } else if hit_entity == *player {
                 println!("Projectile hit Player {hit_entity:?}");
+            } else if walls.get(hit_entity).is_ok() {
+                println!("Projectile hit Wall {hit_entity:?}");
+                // Destroy projectile on wall hit
+                commands.entity(projectile_entity).despawn();
             } else {
                 println!("Projectile hit something else {hit_entity:?}");
             }
@@ -153,6 +156,16 @@ impl Quiver {
             store: ItemStore::new(max_arrows),
             reload_timer,
         }
+    }
+
+    pub fn set_max(&mut self, max: usize) {
+        self.store.max = max;
+        if self.store.current > max {
+            self.store.current = max;
+        }
+    }
+    pub fn set_reload_delay(&mut self, duration: std::time::Duration) {
+        self.reload_timer.set_duration(duration);
     }
 
     pub fn current(&self) -> usize {

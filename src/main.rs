@@ -14,13 +14,16 @@ use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use leafwing_input_manager::plugin::InputManagerPlugin;
 
 mod camera;
+mod collisions;
 mod core;
 mod cursor;
+mod drops;
 mod enemy;
 mod input;
 mod level;
 mod loading;
 mod player;
+mod player_levelup;
 mod projectile;
 mod ui;
 mod walls;
@@ -47,6 +50,8 @@ impl Plugin for GamePlugin {
                 projectile::ProjectilePlugin,
                 walls::WallPlugin,
                 ui::GameUiPlugin,
+                player_levelup::PlayerLevelupPlugin,
+                drops::DropsPlugin,
             ))
             .add_plugins(
                 // N.b. This depends on the egui plugin that's auto-added by bevy_egui. If that is removed

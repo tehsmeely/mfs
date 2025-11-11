@@ -10,7 +10,7 @@ use crate::{
     camera::{GAME_RENDER_LAYER, MainCamera},
     core::{
         body,
-        components::{CollidesWithPlayer, Health, ItemStore},
+        components::{CollidesWithPlayer, ExperienceLevel, Health},
         directional_animation::{
             CharacterState, DirectionalAnimationAsset, SupportsVelocityStateTransition,
             directional_animation_bundle,
@@ -36,6 +36,7 @@ impl Plugin for PlayerPlugin {
             (move_player, player_shoot, collisions_with_player)
                 .run_if(in_state(GameState::Playing)),
         )
+        .add_systems(Update, PlayerParameters::system)
         .register_type::<Player>()
         .add_observer(spawn);
     }
@@ -51,6 +52,7 @@ fn spawn(
     directional_animations: Res<Assets<DirectionalAnimationAsset>>,
 ) -> Result {
     println!("Spawning player at SpawnPoint");
+    let player_params = PlayerParameters::default();
     let initial_translation = {
         let coords = grid_coords.get(add.entity)?;
         bevy_ecs_ldtk::utils::grid_coords_to_translation(*coords, IVec2::splat(8)).extend(PLAYER_Z)
@@ -75,31 +77,40 @@ fn spawn(
         .get(&custom_assets.slime_animation)
         .cloned();
     println!("Custom asset loaded: {slime_animation:?}");
-    commands.spawn((
-        animation_bundle,
-        SupportsVelocityStateTransition,
-        Name::new("Player"),
-        Player,
-        Health {
-            current: 10.0,
-            max: 10.0,
-        },
-        crate::input::input_map(),
-        Transform::from_translation(initial_translation),
-        Collider::capsule(2.5, 5.0),
-        body::body(body::BodyKind::Dynamic),
-        Quiver::new(10, Duration::from_secs(1)),
-        GAME_RENDER_LAYER,
-    ));
+    commands
+        .spawn((
+            animation_bundle,
+            player_params,
+            SupportsVelocityStateTransition,
+            Name::new("Player"),
+            Player,
+            Health::new(player_params.max_health),
+            crate::input::input_map(),
+            Transform::from_translation(initial_translation),
+            Collider::capsule(2.5, 5.0),
+            body::body(body::BodyKind::Dynamic),
+            Quiver::new(
+                player_params.quiver_size,
+                Duration::from_secs_f32(player_params.quiver_reload_time_s),
+            ),
+            ExperienceLevel::new(),
+            GAME_RENDER_LAYER,
+        ))
+        .with_children(|parent| {
+            parent.spawn((
+                Collider::circle(20.0),
+                Sensor,
+                Name::new("Player Pickup Sensor"),
+            ));
+        });
     Ok(())
 }
 
 fn move_player(
     time: Res<Time>,
-    mut query: Query<(&ActionState<Action>, &mut LinearVelocity), With<Player>>,
+    query: Single<(&ActionState<Action>, &mut LinearVelocity, &PlayerParameters), With<Player>>,
 ) -> Result {
-    let speed = 3000.0;
-    let (action_state, mut linear_velocity) = query.single_mut()?;
+    let (action_state, mut linear_velocity, player_params) = query.into_inner();
 
     let mut direction_vec = Vec2::ZERO;
     for action in Action::all_movements() {
@@ -109,19 +120,28 @@ fn move_player(
             direction_vec += dir.as_vec2();
         }
     }
-    let movements = direction_vec.normalize_or_zero() * time.delta_secs() * speed;
+    let movements =
+        direction_vec.normalize_or_zero() * time.delta_secs() * player_params.movement_speed;
     linear_velocity.0 = movements;
     Ok(())
 }
 
 fn player_shoot(
     mut commands: Commands,
-    player_query: Single<(&ActionState<Action>, &Transform, &mut Quiver), With<Player>>,
+    player_query: Single<
+        (
+            &ActionState<Action>,
+            &Transform,
+            &mut Quiver,
+            &PlayerParameters,
+        ),
+        With<Player>,
+    >,
     window: Single<&Window, With<PrimaryWindow>>,
     camera_query: Single<(&Camera, &GlobalTransform), With<MainCamera>>,
     textures: Res<TextureAssets>,
 ) -> Result {
-    let (action_state, transform, mut quiver) = player_query.into_inner();
+    let (action_state, transform, mut quiver, player_params) = player_query.into_inner();
     let (camera, camera_transform) = *camera_query;
     if action_state.just_pressed(&Action::Attack) && quiver.try_take() {
         let target_screenspace = window.cursor_position().unwrap_or_default();
@@ -129,15 +149,13 @@ fn player_shoot(
         let player_pos = transform.translation.truncate();
         let direction = (target - player_pos).normalize_or_zero();
         println!("Player shoot action detected. target: {target:?}, direction: {direction:?}");
-        let speed = 70.0;
-        let damage = 10.0;
         crate::projectile::spawn_projectile(
             &mut commands,
             transform.translation,
             direction,
-            speed,
-            damage,
-            1u32,
+            player_params.projectile_speed,
+            player_params.projectile_damage,
+            player_params.projectile_pierce,
             &textures,
         );
     }
@@ -174,4 +192,48 @@ fn collisions_with_player(
         }
     }
     Ok(())
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Reflect, Component)]
+pub struct PlayerParameters {
+    pub movement_speed: f32,
+    pub max_health: f32,
+    pub projectile_speed: f32,
+    pub projectile_pierce: u32,
+    pub projectile_size: f32,
+    pub projectile_damage: f32,
+    pub quiver_size: usize,
+    pub quiver_reload_time_s: f32,
+}
+
+impl Default for PlayerParameters {
+    fn default() -> Self {
+        Self {
+            movement_speed: 3000.0,
+            projectile_speed: 70.0,
+            projectile_pierce: 1,
+            projectile_size: 1.0,
+            projectile_damage: 10.0,
+            quiver_size: 10,
+            quiver_reload_time_s: 1.0,
+            max_health: 10.0,
+        }
+    }
+}
+
+impl PlayerParameters {
+    pub fn reset(&mut self) {
+        *self = PlayerParameters::default();
+    }
+
+    fn system(
+        query: Single<(&Self, &mut Quiver, &mut Health), (With<Player>, Changed<PlayerParameters>)>,
+    ) -> Result {
+        info!("Applying PlayerParameters changes to Player components");
+        let (params, mut quiver, mut health) = query.into_inner();
+        health.max = params.max_health;
+        quiver.set_max(params.quiver_size);
+        quiver.set_reload_delay(Duration::from_secs_f32(params.quiver_reload_time_s));
+        Ok(())
+    }
 }

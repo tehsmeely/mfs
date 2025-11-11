@@ -81,6 +81,8 @@ pub struct TextureAssets {
     pub cursor_crosshair: Handle<Image>,
     #[asset(path = "textures/arrow_single_right.png")]
     pub arrow: Handle<Image>,
+    #[asset(path = "textures/xp_gem.png")]
+    pub xp_gem: Handle<Image>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

@@ -1,16 +1,26 @@
+use std::time::Duration;
+
+use avian2d::prelude::{Physics, PhysicsTime};
 use bevy::prelude::*;
 use bevy_egui::{
     EguiContexts, EguiPrimaryContextPass,
-    egui::{self, Align2, Color32, ProgressBar, Widget, WidgetText},
+    egui::{self, Align2, Color32, DragValue, ProgressBar, Widget, WidgetText},
 };
 
-use crate::{core::components::Health, projectile::Quiver};
+use crate::{
+    core::components::{ExperienceLevel, Health},
+    player::PlayerParameters,
+    projectile::Quiver,
+};
 
 pub struct GameUiPlugin;
 
 impl Plugin for GameUiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(EguiPrimaryContextPass, ui);
+        app.add_systems(
+            EguiPrimaryContextPass,
+            (ui, params_ui, physics_ui).run_if(in_state(crate::GameState::Playing)),
+        );
     }
 }
 
@@ -27,10 +37,12 @@ fn plain_window<'open>(title: impl Into<WidgetText>) -> bevy_egui::egui::Window<
 
 fn ui(
     mut context: EguiContexts,
-    player: Single<(&Health, &Quiver), With<crate::player::Player>>,
+    player: Single<(&Health, &Quiver, &ExperienceLevel), With<crate::player::Player>>,
 ) -> Result {
-    let (health, quiver) = player.into_inner();
+    let (health, quiver, experience_level) = player.into_inner();
     plain_window("Player Info").show(context.ctx_mut()?, |ui| {
+        ui.label(format!("Level: {}", experience_level.level));
+        ui.label(format!("XP: {}", experience_level.current_xp));
         ProgressBar::new(health.pct())
             .text(health.current.to_string())
             .desired_width(100.0)
@@ -55,5 +67,87 @@ fn ui(
             None => {}
         }
     });
+    Ok(())
+}
+
+fn params_ui(
+    mut context: EguiContexts,
+    mut player: Single<&mut PlayerParameters, With<crate::player::Player>>,
+) -> Result {
+    egui::Window::new("Player Parameters")
+        .anchor(Align2::RIGHT_TOP, bevy_egui::egui::Vec2::ZERO)
+        .collapsible(true)
+        .movable(false)
+        .title_bar(true)
+        .default_open(false)
+        .show(context.ctx_mut()?, |ui| {
+            egui::Grid::new("player_params_grid")
+                .num_columns(2)
+                .show(ui, |ui| {
+                    ui.label("Movement Speed:");
+                    DragValue::new(&mut player.movement_speed)
+                        .range(0.0..=10000.0)
+                        .ui(ui);
+                    ui.end_row();
+                    ui.label("Projectile Speed:");
+                    DragValue::new(&mut player.projectile_speed)
+                        .range(0.1..=1000.0)
+                        .ui(ui);
+                    ui.end_row();
+                    ui.label("Projectile Pierce:");
+                    DragValue::new(&mut player.projectile_pierce)
+                        .range(1..=255)
+                        .ui(ui);
+                    ui.end_row();
+                    ui.label("Projectile Size:");
+                    DragValue::new(&mut player.projectile_size)
+                        .range(0.1..=10.0)
+                        .ui(ui);
+                    ui.label(format!("{:.2}", player.projectile_size));
+                    ui.end_row();
+                    ui.label("Projectile Damage:");
+                    DragValue::new(&mut player.projectile_damage)
+                        .range(0.1..=1000.0)
+                        .ui(ui);
+                    ui.end_row();
+                    ui.label("Quiver Size:");
+                    DragValue::new(&mut player.quiver_size)
+                        .range(1..=100)
+                        .ui(ui);
+                    ui.end_row();
+                    ui.label("Quiver Reload Time (s):");
+                    DragValue::new(&mut player.quiver_reload_time_s)
+                        .range(0.01..=10.0)
+                        .ui(ui);
+                    ui.end_row();
+                });
+        });
+    Ok(())
+}
+
+fn physics_ui(
+    mut context: EguiContexts,
+    mut physics: ResMut<Time<Physics>>,
+    mut level_ups: MessageWriter<crate::player_levelup::LeveledUp>,
+) -> Result {
+    egui::Window::new("Physics")
+        .collapsible(true)
+        .movable(true)
+        .title_bar(true)
+        .show(context.ctx_mut()?, |ui| {
+            ui.label(format!("Physics Active: {}", !physics.is_paused()));
+            if ui.button("Pause Physics").clicked() {
+                physics.pause();
+            }
+            if ui.button("Resume Physics").clicked() {
+                physics.unpause();
+            }
+            if ui.button("Step Physics").clicked() {
+                physics.advance_by(Duration::from_secs_f32(0.01));
+            }
+            if ui.button("Trigger Level Up").clicked() {
+                level_ups.write(crate::player_levelup::LeveledUp);
+            }
+        });
     Ok(())
 }
