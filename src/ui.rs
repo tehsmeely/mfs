@@ -3,12 +3,14 @@ use std::time::Duration;
 use avian2d::prelude::{Physics, PhysicsTime};
 use bevy::prelude::*;
 use bevy_egui::{
-    EguiContexts, EguiPrimaryContextPass,
+    EguiContexts, EguiGlobalSettings, EguiPrimaryContextPass,
     egui::{self, Align2, Color32, DragValue, ProgressBar, Widget, WidgetText},
 };
+use leafwing_input_manager::prelude::ActionState;
 
 use crate::{
     core::components::{ExperienceLevel, Health},
+    input::Action,
     player::PlayerParameters,
     projectile::Quiver,
 };
@@ -129,8 +131,10 @@ fn physics_ui(
     mut context: EguiContexts,
     mut physics: ResMut<Time<Physics>>,
     mut level_ups: MessageWriter<crate::player_levelup::LeveledUp>,
+    mut egui_global_settings: ResMut<EguiGlobalSettings>,
+    mut input_actions: Query<&mut ActionState<Action>>,
 ) -> Result {
-    egui::Window::new("Physics")
+    let window = egui::Window::new("Physics")
         .collapsible(true)
         .movable(true)
         .title_bar(true)
@@ -148,6 +152,21 @@ fn physics_ui(
             if ui.button("Trigger Level Up").clicked() {
                 level_ups.write(crate::player_levelup::LeveledUp);
             }
+            ui.checkbox(
+                &mut egui_global_settings.enable_absorb_bevy_input_system,
+                "Absorb all input messages",
+            );
         });
+    let is_hovered = match window {
+        Some(w) => w.response.hovered(),
+        None => false,
+    };
+    for mut a_s in input_actions.iter_mut() {
+        if is_hovered {
+            a_s.disable_action(&Action::Attack);
+        } else {
+            a_s.enable_action(&Action::Attack);
+        }
+    }
     Ok(())
 }

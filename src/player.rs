@@ -98,6 +98,7 @@ fn spawn(
             ExperienceLevel::new(),
             GAME_RENDER_LAYER,
         ))
+        .observe(crate::drops::on_pickup)
         .with_children(|parent| {
             parent.spawn((
                 Collider::circle(20.0),
