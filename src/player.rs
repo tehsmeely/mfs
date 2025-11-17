@@ -26,6 +26,8 @@ pub struct PlayerPlugin;
 
 #[derive(Component, Reflect)]
 pub struct Player;
+#[derive(Component, Reflect)]
+pub struct PlayerPickupSensor;
 
 pub const PLAYER_Z: f32 = 100.0;
 
@@ -99,8 +101,10 @@ fn spawn(
         .with_children(|parent| {
             parent.spawn((
                 Collider::circle(20.0),
+                crate::collisions::game_drop_layer(),
                 Sensor,
                 Name::new("Player Pickup Sensor"),
+                PlayerPickupSensor,
             ));
         });
     Ok(())
