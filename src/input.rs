@@ -7,7 +7,11 @@ pub enum Action {
     MoveRight,
     MoveUp,
     MoveDown,
-    Attack,
+    MainAttack,
+    AttackSlot1,
+    AttackSlot2,
+    AttackSlot3,
+    AttackSlot4,
 }
 
 impl Action {
@@ -37,6 +41,10 @@ pub fn input_map() -> InputMap<Action> {
     input_map.insert(Action::MoveRight, KeyCode::KeyD);
     input_map.insert(Action::MoveUp, KeyCode::KeyW);
     input_map.insert(Action::MoveDown, KeyCode::KeyS);
-    input_map.insert(Action::Attack, MouseButton::Left);
+    input_map.insert(Action::MainAttack, MouseButton::Left);
+    input_map.insert(Action::AttackSlot1, KeyCode::Digit1);
+    input_map.insert(Action::AttackSlot2, KeyCode::Digit2);
+    input_map.insert(Action::AttackSlot3, KeyCode::Digit3);
+    input_map.insert(Action::AttackSlot4, KeyCode::Digit4);
     input_map
 }

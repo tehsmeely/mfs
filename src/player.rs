@@ -1,7 +1,7 @@
 use std::{collections::HashMap, time::Duration};
 
 use avian2d::prelude::*;
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::{mesh::skinning, prelude::*, window::PrimaryWindow};
 use bevy_ecs_ldtk::GridCoords;
 use leafwing_input_manager::prelude::ActionState;
 
@@ -19,6 +19,7 @@ use crate::{
     input::Action,
     level::SpawnPoint,
     loading::TextureAssets,
+    player_skills::{OptionOrLocked, Skill, SkillEffect, SkillSlots},
     projectile::Quiver,
 };
 
@@ -35,7 +36,12 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (move_player, player_shoot, collisions_with_player)
+            (
+                move_player,
+                player_shoot,
+                collisions_with_player,
+                player_skill_action,
+            )
                 .run_if(in_state(GameState::Playing)),
         )
         .add_systems(Update, PlayerParameters::system)
@@ -74,6 +80,25 @@ fn spawn(
             directional_animation_asset,
         )?
     };
+    let skill_slots = {
+        let mut cooldown_timer = Timer::from_seconds(1.0, TimerMode::Once);
+        //cooldown_timer.
+        SkillSlots {
+            skill1: OptionOrLocked::Some(Skill {
+                name: "Multi-Shot".to_string(),
+                description: "Shoot multiple arrows at once.".to_string(),
+                cooldown_timer,
+                effect: SkillEffect::ArrowVolley { arrow_count: 4 },
+            }),
+            skill2: OptionOrLocked::Locked,
+            skill3: OptionOrLocked::Locked,
+            skill4: OptionOrLocked::Locked,
+        }
+    };
+    let quiver = Quiver::new(
+        player_params.quiver_size,
+        Duration::from_secs_f32(player_params.quiver_reload_time_s),
+    );
     println!("Custom asset loaded: {:?}", custom_assets.slime_animation);
     let slime_animation = directional_animations
         .get(&custom_assets.slime_animation)
@@ -91,10 +116,8 @@ fn spawn(
             Transform::from_translation(initial_translation),
             Collider::capsule(2.5, 5.0),
             body::body(body::BodyKind::Dynamic),
-            Quiver::new(
-                player_params.quiver_size,
-                Duration::from_secs_f32(player_params.quiver_reload_time_s),
-            ),
+            skill_slots,
+            quiver,
             ExperienceLevel::new(),
             GAME_RENDER_LAYER,
         ))
@@ -148,7 +171,7 @@ fn player_shoot(
 ) -> Result {
     let (action_state, transform, mut quiver, player_params) = player_query.into_inner();
     let (camera, camera_transform) = *camera_query;
-    if action_state.just_pressed(&Action::Attack) && quiver.try_take() {
+    if action_state.just_pressed(&Action::MainAttack) && quiver.try_take() {
         let target_screenspace = window.cursor_position().unwrap_or_default();
         let target = camera.viewport_to_world_2d(camera_transform, target_screenspace)?;
         let player_pos = transform.translation.truncate();
@@ -165,6 +188,30 @@ fn player_shoot(
         );
     }
     Ok(())
+}
+
+fn player_skill_action(
+    mut commands: Commands,
+    player_query: Single<(&ActionState<Action>, &Transform, &mut SkillSlots), With<Player>>,
+) {
+    let (action_state, _transform, mut skill_slots) = player_query.into_inner();
+    if action_state.just_pressed(&Action::AttackSlot1) {
+        match skill_slots.skill1.as_mut() {
+            OptionOrLocked::Some(skill) => {
+                if skill.maybe_trigger(&mut commands) {
+                    println!("Triggered skill 1: {}", skill.name);
+                } else {
+                    println!("Can't trigger skill 1, on cooldown.");
+                }
+            }
+            OptionOrLocked::None => {
+                println!("Skill slot 1 is not set.");
+            }
+            OptionOrLocked::Locked => {
+                println!("Skill slot 1 is locked.");
+            }
+        }
+    }
 }
 
 fn collisions_with_player(

@@ -24,6 +24,7 @@ mod level;
 mod loading;
 mod player;
 mod player_levelup;
+mod player_skills;
 mod projectile;
 mod ui;
 mod walls;
@@ -51,6 +52,7 @@ impl Plugin for GamePlugin {
                 walls::WallPlugin,
                 ui::GameUiPlugin,
                 player_levelup::PlayerLevelupPlugin,
+                player_skills::PlayerSkillsPlugin,
                 drops::DropsPlugin,
             ))
             .add_plugins(

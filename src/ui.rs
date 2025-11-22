@@ -163,9 +163,9 @@ fn physics_ui(
     };
     for mut a_s in input_actions.iter_mut() {
         if is_hovered {
-            a_s.disable_action(&Action::Attack);
+            a_s.disable_action(&Action::MainAttack);
         } else {
-            a_s.enable_action(&Action::Attack);
+            a_s.enable_action(&Action::MainAttack);
         }
     }
     Ok(())
