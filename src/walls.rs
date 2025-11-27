@@ -3,7 +3,7 @@
 use std::collections::HashSet;
 
 use avian2d::prelude::*;
-use bevy::{ecs::error::info, platform::collections::HashMap, prelude::*};
+use bevy::{platform::collections::HashMap, prelude::*};
 use bevy_ecs_ldtk::prelude::*;
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Default, Component)]

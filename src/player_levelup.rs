@@ -1,9 +1,7 @@
 use avian2d::prelude::{Physics, PhysicsTime};
-use bevy::{ecs::error::info, prelude::*};
-use bevy_egui::{
-    EguiContexts, EguiPrimaryContextPass,
-    egui::{self, Align2},
-};
+use bevy::{ecs::error::info, prelude::*, ui, ui_render::ui_texture_slice_pipeline};
+
+use crate::uis::level_up_cards::DisplayLevelUpCards;
 
 pub struct PlayerLevelupPlugin;
 
@@ -16,10 +14,6 @@ impl Plugin for PlayerLevelupPlugin {
                 (level_up_events).run_if(in_state(crate::GameState::Playing)),
             )
             .add_systems(
-                EguiPrimaryContextPass,
-                (display_level_up_ui).run_if(in_state(crate::GameState::Playing)),
-            )
-            .add_systems(
                 Update,
                 (leveling_up_transitions).run_if(resource_changed::<LevelingUp>),
             );
@@ -29,13 +23,22 @@ impl Plugin for PlayerLevelupPlugin {
 #[derive(Resource, Reflect, Default, Deref, DerefMut)]
 pub struct LevelingUp(pub bool);
 
-fn leveling_up_transitions(leveling_up: Res<LevelingUp>, mut physics: ResMut<Time<Physics>>) {
+fn leveling_up_transitions(
+    leveling_up: Res<LevelingUp>,
+    mut physics: ResMut<Time<Physics>>,
+    mut player_input: Single<
+        &mut leafwing_input_manager::prelude::ActionState<crate::input::Action>,
+        With<crate::player::Player>,
+    >,
+) {
     if **leveling_up {
-        warn!("Leveling up - pausing physics");
+        warn!("Leveling up - pausing physics & disabling player input");
         physics.pause();
+        player_input.disable();
     } else {
-        warn!("Not leveling up - unpausing physics");
+        warn!("Not leveling up - unpausing physics & enabling player input");
         physics.unpause();
+        player_input.enable();
     }
 }
 
@@ -51,26 +54,96 @@ fn level_up_events(
     if !(**leveling_up) {
         if let Some(LeveledUp) = events.read().next() {
             leveling_up.0 = true;
+            let options = vec![
+                LevelUpCard {
+                    kind: CardKind::IncreaseHealth,
+                    rarity: CardRarity::Common,
+                },
+                LevelUpCard {
+                    kind: CardKind::IncreaseDamage,
+                    rarity: CardRarity::Rare,
+                },
+                LevelUpCard {
+                    kind: CardKind::IncreaseSpeed,
+                    rarity: CardRarity::Epic,
+                },
+            ];
+            commands.trigger(DisplayLevelUpCards { options });
         }
     }
 }
 
-fn display_level_up_ui(mut context: EguiContexts, mut leveling_up: ResMut<LevelingUp>) -> Result {
-    if **leveling_up {
-        egui::Window::new("Level Up!")
-            .collapsible(false)
-            .anchor(Align2::CENTER_CENTER, bevy_egui::egui::Vec2::ZERO)
-            .resizable(true)
-            .title_bar(true)
-            .interactable(true)
-            .show(context.ctx_mut()?, |ui| {
-                ui.label("You have leveled up! Choose an upgrade:");
-                // Upgrade options would go here
-                if ui.button("Increase Health").clicked() {
-                    info!("Clicked levelup");
-                    **leveling_up = false;
-                }
-            });
+#[derive(Clone, Debug, Reflect, Component)]
+pub struct LevelUpCard {
+    pub kind: CardKind,
+    pub rarity: CardRarity,
+}
+
+#[derive(Debug, Reflect, Clone, Copy)]
+pub enum CardKind {
+    IncreaseHealth,
+    IncreaseDamage,
+    IncreaseSpeed,
+    IncreaseReloadRate,
+    IncreasePenetration,
+}
+
+#[derive(Debug, Reflect, Clone, Copy)]
+pub enum CardRarity {
+    Common,
+    Rare,
+    Epic,
+    Legendary,
+}
+
+impl CardRarity {
+    pub fn multiplier(&self) -> f32 {
+        match self {
+            CardRarity::Common => 1.0,
+            CardRarity::Rare => 1.2,
+            CardRarity::Epic => 1.5,
+            CardRarity::Legendary => 2.0,
+        }
     }
-    Ok(())
+
+    pub fn imultiplier(&self) -> i32 {
+        match self {
+            CardRarity::Common => 1,
+            CardRarity::Rare => 2,
+            CardRarity::Epic => 3,
+            CardRarity::Legendary => 4,
+        }
+    }
+}
+
+impl CardKind {
+    pub fn description(&self) -> &str {
+        match self {
+            CardKind::IncreaseHealth => "Increase your maximum health.",
+            CardKind::IncreaseDamage => "Increase your damage output.",
+            CardKind::IncreaseSpeed => "Increase your movement speed.",
+            CardKind::IncreaseReloadRate => "Decrease your reload time.",
+            CardKind::IncreasePenetration => "Increase projectile penetration.",
+        }
+    }
+
+    pub fn apply(&self, rarity: CardRarity, player: &mut crate::player::PlayerParameters) {
+        match self {
+            CardKind::IncreaseHealth => {
+                player.max_health += 20.0 * rarity.multiplier();
+            }
+            CardKind::IncreaseDamage => {
+                player.projectile_damage *= 1.2 * rarity.multiplier();
+            }
+            CardKind::IncreaseSpeed => {
+                player.movement_speed *= 1.2 * rarity.multiplier();
+            }
+            CardKind::IncreaseReloadRate => {
+                player.quiver_reload_time_s *= 0.8 * rarity.multiplier();
+            }
+            CardKind::IncreasePenetration => {
+                player.projectile_pierce += 1 * (rarity.imultiplier() as u32);
+            }
+        }
+    }
 }

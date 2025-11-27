@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
 
+// pub struct InputEnabled(pub bool);
+
 #[derive(Actionlike, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect)]
 pub enum Action {
     MoveLeft,

@@ -27,6 +27,7 @@ mod player_levelup;
 mod player_skills;
 mod projectile;
 mod ui;
+mod uis;
 mod walls;
 
 #[derive(States, Default, Clone, Eq, PartialEq, Debug, Hash)]
@@ -54,6 +55,7 @@ impl Plugin for GamePlugin {
                 player_levelup::PlayerLevelupPlugin,
                 player_skills::PlayerSkillsPlugin,
                 drops::DropsPlugin,
+                uis::level_up_cards::LevelUpCardsPlugin,
             ))
             .add_plugins(
                 // N.b. This depends on the egui plugin that's auto-added by bevy_egui. If that is removed

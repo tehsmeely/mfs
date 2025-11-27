@@ -17,6 +17,7 @@ impl Plugin for LoadingPlugin {
                 .continue_to_state(GameState::Playing)
                 .load_collection::<AudioAssets>()
                 .load_collection::<TextureAssets>()
+                .load_collection::<UiTextureAssets>()
                 .load_collection::<CustomAssets>()
                 .register_dynamic_asset_collection::<CustomDynamicAssetCollection>()
                 .with_dynamic_assets_file::<CustomDynamicAssetCollection>(
@@ -38,6 +39,7 @@ fn print_progress(
     asset_server: Res<AssetServer>,
     audio: Option<Res<AudioAssets>>,
     textures: Option<Res<TextureAssets>>,
+    ui_textures: Option<Res<UiTextureAssets>>,
 ) {
     if let Some(audio) = audio.as_ref() {
         println!("shoot.ogg: {:?}", asset_server.get_load_state(&audio.shoot));
@@ -48,6 +50,11 @@ fn print_progress(
         println!("Textures in process")
     } else {
         println!("Textures not loaded yet");
+    }
+    if let Some(_ui_textures) = ui_textures.as_ref() {
+        println!("UI Textures in process")
+    } else {
+        println!("UI Textures not loaded yet");
     }
 }
 
@@ -83,6 +90,18 @@ pub struct TextureAssets {
     pub arrow: Handle<Image>,
     #[asset(path = "textures/xp_gem.png")]
     pub xp_gem: Handle<Image>,
+}
+
+#[derive(AssetCollection, Resource)]
+pub struct UiTextureAssets {
+    #[asset(path = "textures/skill_card1.png")]
+    pub skill_card1: Handle<Image>,
+    #[asset(path = "textures/skill_card2.png")]
+    pub skill_card2: Handle<Image>,
+    #[asset(path = "textures/skill_card3.png")]
+    pub skill_card3: Handle<Image>,
+    #[asset(path = "textures/skill_card4.png")]
+    pub skill_card4: Handle<Image>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
