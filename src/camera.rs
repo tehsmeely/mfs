@@ -41,6 +41,7 @@ fn setup_camera(mut commands: Commands) {
         Name::new("Main Camera"),
     ));
     // UI Camera
+    /*
     commands.spawn((
         Camera2d,
         Camera {
@@ -53,6 +54,7 @@ fn setup_camera(mut commands: Commands) {
         UI_RENDER_LAYER,
         Name::new("Ui Camera"),
     ));
+    */
 }
 
 fn follow_player(

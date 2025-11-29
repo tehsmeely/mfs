@@ -1,4 +1,4 @@
-use bevy::{prelude::*, ui};
+use bevy::prelude::*;
 
 use crate::{
     loading::UiTextureAssets,
@@ -72,6 +72,7 @@ fn level_up_card(card: LevelUpCard, ui_images: &UiTextureAssets) -> impl Bundle 
             padding: UiRect::all(Val::Px(10.0)),
             ..default()
         },
+        Name::new("Level Up Card"),
         ImageNode {
             color: Color::srgba(1.0, 1.0, 1.0, 1.0).into(),
             image,
@@ -88,7 +89,7 @@ fn level_up_card(card: LevelUpCard, ui_images: &UiTextureAssets) -> impl Bundle 
                 ..default()
             },
             TextColor(Color::BLACK),
-            TextShadow::default(),
+            Name::new("Level Up Card Text"),
         )],
     )
 }
@@ -109,6 +110,7 @@ fn handle_show_cards(
                 column_gap: Val::Px(20.0),
                 ..default()
             },
+            Name::new("Level Up Cards Container"),
             BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.8).into()),
             LevelUpCardContainer,
         ))
@@ -120,7 +122,7 @@ fn handle_show_cards(
 }
 
 fn despawn_level_up_cards(
-    trigger: On<DespawnLevelUpCards>,
+    _trigger: On<DespawnLevelUpCards>,
     mut commands: Commands,
     query: Query<Entity, With<LevelUpCardContainer>>,
 ) {

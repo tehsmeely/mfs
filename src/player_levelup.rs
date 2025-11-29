@@ -1,5 +1,6 @@
 use avian2d::prelude::{Physics, PhysicsTime};
 use bevy::{ecs::error::info, prelude::*, ui, ui_render::ui_texture_slice_pipeline};
+use rand::distr::Distribution;
 
 use crate::uis::level_up_cards::DisplayLevelUpCards;
 
@@ -45,6 +46,16 @@ fn leveling_up_transitions(
 #[derive(Reflect, Message)]
 pub struct LeveledUp;
 
+fn gen_card_options() -> Vec<LevelUpCard> {
+    let mut options = Vec::new();
+    for _ in 0..3 {
+        let kind: CardKind = rand::random();
+        let rarity: CardRarity = rand::random();
+        options.push(LevelUpCard { kind, rarity });
+    }
+    options
+}
+
 fn level_up_events(
     mut commands: Commands,
     mut events: MessageReader<LeveledUp>,
@@ -54,21 +65,10 @@ fn level_up_events(
     if !(**leveling_up) {
         if let Some(LeveledUp) = events.read().next() {
             leveling_up.0 = true;
-            let options = vec![
-                LevelUpCard {
-                    kind: CardKind::IncreaseHealth,
-                    rarity: CardRarity::Common,
-                },
-                LevelUpCard {
-                    kind: CardKind::IncreaseDamage,
-                    rarity: CardRarity::Rare,
-                },
-                LevelUpCard {
-                    kind: CardKind::IncreaseSpeed,
-                    rarity: CardRarity::Epic,
-                },
-            ];
-            commands.trigger(DisplayLevelUpCards { options });
+
+            commands.trigger(DisplayLevelUpCards {
+                options: gen_card_options(),
+            });
         }
     }
 }
@@ -116,6 +116,21 @@ impl CardRarity {
     }
 }
 
+impl Distribution<CardRarity> for rand::distr::StandardUniform {
+    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> CardRarity {
+        let roll: f32 = rng.random();
+        if roll < 0.5 {
+            CardRarity::Common
+        } else if roll < 0.8 {
+            CardRarity::Rare
+        } else if roll < 0.95 {
+            CardRarity::Epic
+        } else {
+            CardRarity::Legendary
+        }
+    }
+}
+
 impl CardKind {
     pub fn description(&self) -> &str {
         match self {
@@ -144,6 +159,19 @@ impl CardKind {
             CardKind::IncreasePenetration => {
                 player.projectile_pierce += 1 * (rarity.imultiplier() as u32);
             }
+        }
+    }
+}
+
+impl Distribution<CardKind> for rand::distr::StandardUniform {
+    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> CardKind {
+        let roll = rng.random_range(0..5);
+        match roll {
+            0 => CardKind::IncreaseHealth,
+            1 => CardKind::IncreaseDamage,
+            2 => CardKind::IncreaseSpeed,
+            3 => CardKind::IncreaseReloadRate,
+            _ => CardKind::IncreasePenetration,
         }
     }
 }

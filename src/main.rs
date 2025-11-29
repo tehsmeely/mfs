@@ -34,6 +34,7 @@ mod walls;
 enum GameState {
     #[default]
     Loading,
+    MainMenu,
     Playing,
 }
 
@@ -55,7 +56,7 @@ impl Plugin for GamePlugin {
                 player_levelup::PlayerLevelupPlugin,
                 player_skills::PlayerSkillsPlugin,
                 drops::DropsPlugin,
-                uis::level_up_cards::LevelUpCardsPlugin,
+                uis::UisPlugin,
             ))
             .add_plugins(
                 // N.b. This depends on the egui plugin that's auto-added by bevy_egui. If that is removed
