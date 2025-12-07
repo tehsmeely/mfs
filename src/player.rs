@@ -183,7 +183,7 @@ fn player_shoot(
             direction,
             player_params.projectile_speed,
             player_params.projectile_damage,
-            player_params.projectile_pierce,
+            player_params.projectile_pierce.floor() as u32,
             &textures,
         );
     }
@@ -251,7 +251,8 @@ pub struct PlayerParameters {
     pub movement_speed: f32,
     pub max_health: f32,
     pub projectile_speed: f32,
-    pub projectile_pierce: u32,
+    // Pierce is a float so it can be incremented by fractions, but will be floored when applied.
+    pub projectile_pierce: f32,
     pub projectile_size: f32,
     pub projectile_damage: f32,
     pub quiver_size: usize,
@@ -263,7 +264,7 @@ impl Default for PlayerParameters {
         Self {
             movement_speed: 3000.0,
             projectile_speed: 70.0,
-            projectile_pierce: 1,
+            projectile_pierce: 1.0,
             projectile_size: 1.0,
             projectile_damage: 10.0,
             quiver_size: 10,

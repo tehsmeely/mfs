@@ -102,6 +102,10 @@ pub struct UiTextureAssets {
     pub skill_card3: Handle<Image>,
     #[asset(path = "textures/skill_card4.png")]
     pub skill_card4: Handle<Image>,
+    #[asset(path = "textures/quiver.png")]
+    pub quiver: Handle<Image>,
+    #[asset(path = "textures/refresh_icon.png")]
+    pub refresh_icon: Handle<Image>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

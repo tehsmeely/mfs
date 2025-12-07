@@ -26,7 +26,6 @@ impl Plugin for CameraPlugin {
 
 fn setup_camera(mut commands: Commands) {
     let transform = Transform::from_scale(Vec3::splat(0.2)).with_translation(Vec3::default());
-    let no_clear = ClearColorConfig::None;
     // Main Game Camera
     commands.spawn((
         Camera2d,
@@ -40,21 +39,6 @@ fn setup_camera(mut commands: Commands) {
         GAME_RENDER_LAYER,
         Name::new("Main Camera"),
     ));
-    // UI Camera
-    /*
-    commands.spawn((
-        Camera2d,
-        Camera {
-            order: 1,
-            clear_color: no_clear,
-            ..default()
-        },
-        UiCamera,
-        Transform::from_translation(Vec3::Z * 1000.0),
-        UI_RENDER_LAYER,
-        Name::new("Ui Camera"),
-    ));
-    */
 }
 
 fn follow_player(

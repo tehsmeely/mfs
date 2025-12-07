@@ -171,6 +171,9 @@ impl Quiver {
     pub fn current(&self) -> usize {
         self.store.current
     }
+    pub fn max(&self) -> usize {
+        self.store.max
+    }
 
     pub fn is_reloading(&self) -> bool {
         !self.reload_timer.is_finished()

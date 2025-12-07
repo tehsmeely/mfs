@@ -157,7 +157,7 @@ impl CardKind {
                 player.quiver_reload_time_s *= 0.8 * rarity.multiplier();
             }
             CardKind::IncreasePenetration => {
-                player.projectile_pierce += 1 * (rarity.imultiplier() as u32);
+                player.projectile_pierce += 0.5 * (rarity.multiplier());
             }
         }
     }
@@ -174,4 +174,11 @@ impl Distribution<CardKind> for rand::distr::StandardUniform {
             _ => CardKind::IncreasePenetration,
         }
     }
+}
+
+pub trait GenLevelUpCard {
+    fn name(&self) -> &str;
+    fn description(&self) -> String;
+
+    fn apply(&self, rarity: CardRarity, player: &mut crate::player::PlayerParameters);
 }

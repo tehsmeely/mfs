@@ -124,7 +124,7 @@ fn on_arrow_volley(
             direction.truncate(),
             player_params.projectile_speed,
             player_params.projectile_damage,
-            player_params.projectile_pierce,
+            player_params.projectile_pierce.floor() as u32,
             &textures,
         );
         angle += angle_step;

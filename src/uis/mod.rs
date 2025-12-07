@@ -1,6 +1,7 @@
 use bevy::app::{App, Plugin};
 
 pub mod fade_in_overlay;
+mod in_game_hud;
 pub mod level_up_cards;
 mod main_menu;
 
@@ -12,6 +13,7 @@ impl Plugin for UisPlugin {
             level_up_cards::LevelUpCardsPlugin,
             fade_in_overlay::FadeInOverlayPlugin,
             main_menu::MainMenuPlugin,
+            in_game_hud::InGameHudPlugin,
         ));
     }
 }
