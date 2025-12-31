@@ -1,7 +1,8 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, ui};
 
 use crate::{
     GameState,
+    core::ui_components::ContinuousRotate,
     loading::{TextureAssets, UiTextureAssets},
     projectile::Quiver,
 };
@@ -40,6 +41,7 @@ struct QuiverUi;
 #[derive(Component, Reflect)]
 struct QuiverUiArrow(usize);
 
+/// Bundle for the container of all arrows in the quiver UI.
 fn quiver_ui_bundle() -> impl Bundle {
     (
         Node {
@@ -52,11 +54,13 @@ fn quiver_ui_bundle() -> impl Bundle {
             flex_direction: FlexDirection::ColumnReverse,
             ..default()
         },
-        BackgroundColor(Color::srgb(0.0, 0.0, 1.0)),
+        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0)),
         Name::new("Quiver UI"),
         QuiverUi,
     )
 }
+
+/// Bundle for a single arrow in the quiver UI, either filled or empty.
 fn quiver_ui_arrow_bundle(arrow_num: usize, textures: &TextureAssets) -> impl Bundle {
     (
         Name::new("Quiver Arrow"),
@@ -85,13 +89,14 @@ fn update_quiver_ui(
     let mut max_arrow_seen = 0;
 
     // Update existing arrows, despawn if over max, color if over current
+    // Caution: Here be many off-by-one errors, or potential for.
     for (arrow_entity, arrow, mut image_node) in quiver_ui_arrow_query.iter_mut() {
         max_arrow_seen = max_arrow_seen.max(arrow.0);
         if arrow.0 > quiver.max() {
             // Despawn
             info!("Despawning arrow ui {}", arrow.0);
             commands.entity(arrow_entity).despawn_children().despawn();
-        } else if arrow.0 <= quiver.current() {
+        } else if arrow.0 < quiver.current() {
             image_node.color = Color::WHITE;
         } else {
             image_node.color = Color::srgb(0.5, 0.5, 0.5);
@@ -99,8 +104,9 @@ fn update_quiver_ui(
     }
 
     // Spawn any more due to quiver size increase
-    if max_arrow_seen < quiver.max() {
-        for i in (max_arrow_seen)..=quiver.max() {
+    // Caution: Here be many off-by-one errors, or potential for.
+    if max_arrow_seen < (quiver.max() - 1) {
+        for i in (max_arrow_seen)..quiver.max() {
             info!("Spawning arrow ui {}", i);
             commands.entity(*quiver_ui_entity).with_children(|parent| {
                 parent.spawn(quiver_ui_arrow_bundle(i, &textures));
@@ -116,6 +122,7 @@ struct ReloadingQuiverIcon;
 #[derive(Component, Reflect)]
 struct ReloadingRotatingIcon;
 
+/// Bundle for the reloading UI overlapping the player
 fn reloading_ui_bundle(textures: &UiTextureAssets) -> impl Bundle {
     (
         Node {
@@ -129,32 +136,32 @@ fn reloading_ui_bundle(textures: &UiTextureAssets) -> impl Bundle {
         BackgroundColor(Color::NONE),
         Name::new("Reloading UI"),
         ReloadingUi,
-        children![
-            (
-                ImageNode {
-                    image: textures.quiver.clone(),
-                    ..default()
-                },
-                Node {
-                    width: Val::Px(30.0),
-                    height: Val::Px(40.0),
-                    ..default()
-                },
-                ReloadingQuiverIcon,
-            ),
-            (
+        children![(
+            ImageNode {
+                image: textures.quiver.clone(),
+                ..default()
+            },
+            Node {
+                width: Val::Px(30.0),
+                height: Val::Px(40.0),
+                ..default()
+            },
+            ReloadingQuiverIcon,
+            children![(
                 ImageNode {
                     image: textures.refresh_icon.clone(),
                     ..default()
                 },
+                UiTransform::from_rotation(Rot2::IDENTITY),
                 Node {
                     width: Val::Px(40.0),
                     height: Val::Px(40.0),
                     ..default()
                 },
                 ReloadingRotatingIcon,
-            ),
-        ],
+                ContinuousRotate::new(3.0),
+            )]
+        ),],
     )
 }
 
