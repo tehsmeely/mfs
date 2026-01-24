@@ -106,6 +106,10 @@ pub struct UiTextureAssets {
     pub quiver: Handle<Image>,
     #[asset(path = "textures/refresh_icon.png")]
     pub refresh_icon: Handle<Image>,
+    #[asset(path = "textures/skill_icons.png")]
+    pub skill_icons: Handle<Image>,
+    #[asset(texture_atlas_layout(tile_size_x = 40, tile_size_y = 40, columns = 4, rows = 1))]
+    pub skill_icons_layout: Handle<TextureAtlasLayout>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

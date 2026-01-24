@@ -99,6 +99,12 @@ impl SkillSlots {
 #[derive(Reflect, Clone, Debug)]
 pub enum SkillEffect {
     ArrowVolley { arrow_count: u32 },
+    // Ideas for other skills:
+    // Rapid Shot (fires multiple projectiles in quick succession)
+    // Explosive Arrow (projectile explodes on impact, dealing area damage)
+    // Homing Arrow (projectile homes in on the nearest enemy)
+    // Drop Trap (places a trap on the ground that slows or damages enemies)
+    // 
 }
 
 #[derive(Event, Reflect, Clone, Debug)]
