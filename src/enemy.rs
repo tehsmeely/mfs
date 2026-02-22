@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use avian2d::prelude::*;
 use bevy::prelude::*;
 use bevy_ecs_ldtk::GridCoords;
+use bevy_prng::WyRand;
+use bevy_rand::global::GlobalRng;
 use rand::seq::IteratorRandom;
 
 use crate::{
@@ -59,6 +61,7 @@ fn spawn_decider(
     floor_query: Query<&GridCoords, With<crate::level::Floor>>,
     player_transform: Single<&Transform, With<Player>>,
     enemies: Query<Entity, With<Enemy>>,
+    mut rng: Single<&mut WyRand, With<GlobalRng>>,
 ) -> Result {
     let max_enemies = 10;
     if timer.tick(time.delta()).just_finished() {
@@ -71,8 +74,7 @@ fn spawn_decider(
             // event_writer.write(SpawnEnemy {
             //     global_position: spawn_position,
             // });
-            let mut rng = rand::rng();
-            let chosen_floors = floor_query.iter().choose_multiple(&mut rng, 4);
+            let chosen_floors = floor_query.iter().sample(&mut rng, 4);
             for i in 0..chosen_floors.len() {
                 let floor = chosen_floors[i];
                 let spawn_position =

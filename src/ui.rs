@@ -21,7 +21,7 @@ impl Plugin for GameUiPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             EguiPrimaryContextPass,
-            (ui, params_ui, physics_ui).run_if(in_state(crate::GameState::Playing)),
+            (params_ui, physics_ui).run_if(in_state(crate::GameState::Playing)),
         );
     }
 }
@@ -37,7 +37,7 @@ fn plain_window<'open>(title: impl Into<WidgetText>) -> bevy_egui::egui::Window<
         .anchor(Align2::LEFT_BOTTOM, bevy_egui::egui::Vec2::ZERO)
 }
 
-fn ui(
+fn _ui(
     mut context: EguiContexts,
     player: Single<(&Health, &Quiver, &ExperienceLevel), With<crate::player::Player>>,
 ) -> Result {

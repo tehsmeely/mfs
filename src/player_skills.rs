@@ -81,6 +81,16 @@ impl SkillSlots {
         }
     }
 
+    pub fn get_skill_slot(&self, slot: u8) -> Option<&OptionOrLocked<Skill>> {
+        match slot {
+            1 => Some(&self.skill1),
+            2 => Some(&self.skill2),
+            3 => Some(&self.skill3),
+            4 => Some(&self.skill4),
+            _ => None,
+        }
+    }
+
     fn update_one(slot: &mut OptionOrLocked<Skill>, time: Duration) {
         if let OptionOrLocked::Some(skill) = slot {
             skill.cooldown_timer.tick(time);
@@ -104,7 +114,7 @@ pub enum SkillEffect {
     // Explosive Arrow (projectile explodes on impact, dealing area damage)
     // Homing Arrow (projectile homes in on the nearest enemy)
     // Drop Trap (places a trap on the ground that slows or damages enemies)
-    // 
+    //
 }
 
 #[derive(Event, Reflect, Clone, Debug)]

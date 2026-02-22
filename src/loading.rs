@@ -110,6 +110,8 @@ pub struct UiTextureAssets {
     pub skill_icons: Handle<Image>,
     #[asset(texture_atlas_layout(tile_size_x = 40, tile_size_y = 40, columns = 4, rows = 1))]
     pub skill_icons_layout: Handle<TextureAtlasLayout>,
+    #[asset(path = "textures/heart.png")]
+    pub heart: Handle<Image>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

@@ -11,6 +11,8 @@ use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 
 use bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use bevy_prng::WyRand;
+use bevy_rand::prelude::EntropyPlugin;
 use leafwing_input_manager::plugin::InputManagerPlugin;
 
 mod camera;
@@ -95,6 +97,7 @@ fn main() {
         .add_plugins(PhysicsPlugins::default().with_length_unit(20.0))
         .add_plugins(PhysicsDebugPlugin)
         .add_plugins(EguiPlugin::default())
+        .add_plugins(EntropyPlugin::<WyRand>::default())
         .add_plugins(GamePlugin)
         .run();
 }

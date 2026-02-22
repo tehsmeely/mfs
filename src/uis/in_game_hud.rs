@@ -13,7 +13,12 @@ impl Plugin for InGameHudPlugin {
             .add_systems(OnExit(GameState::Playing), teardown)
             .add_systems(
                 Update,
-                (quiver::update_quiver_ui, reloading::update_reloading_ui)
+                (
+                    quiver::update_quiver_ui,
+                    health::update_health_ui,
+                    reloading::update_reloading_ui,
+                    abilities::update_reloading_icon_overlay,
+                )
                     .run_if(in_state(GameState::Playing)),
             );
     }
@@ -30,6 +35,7 @@ fn setup(mut commands: Commands, ui_textures: Res<UiTextureAssets>) {
         Name::new("InGame HUD"),
         children![
             (quiver::quiver_ui_bundle()),
+            (health::health_ui_bundle()),
             (reloading::reloading_ui_bundle(&ui_textures)),
             (abilities::ability_ui_bundle(&ui_textures))
         ],
@@ -39,7 +45,9 @@ fn setup(mut commands: Commands, ui_textures: Res<UiTextureAssets>) {
 mod quiver {
     use bevy::prelude::*;
 
-    use crate::{loading::TextureAssets, projectile::Quiver};
+    use crate::{
+        core::ui_components::debug_ui_background, loading::TextureAssets, projectile::Quiver,
+    };
 
     #[derive(Component, Reflect)]
     pub struct QuiverUi;
@@ -59,7 +67,7 @@ mod quiver {
                 flex_direction: FlexDirection::ColumnReverse,
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.0)),
+            debug_ui_background(),
             Name::new("Quiver UI"),
             QuiverUi,
         )
@@ -121,11 +129,105 @@ mod quiver {
     }
 }
 
+mod health {
+    use bevy::prelude::*;
+
+    use crate::{
+        core::{components::Health, ui_components::debug_ui_background},
+        loading::UiTextureAssets,
+        player::Player,
+    };
+
+    #[derive(Component, Reflect)]
+    pub struct HealthUi;
+    #[derive(Component, Reflect)]
+    pub struct HealthUiHeart(usize);
+
+    /// Bundle for the container of all hearts in the health UI.
+    pub fn health_ui_bundle() -> impl Bundle {
+        (
+            Node {
+                height: Val::Percent(100.0),
+                width: Val::Px(50.0),
+                position_type: PositionType::Absolute,
+                left: Val::ZERO,
+                justify_content: JustifyContent::End,
+                align_content: AlignContent::Center,
+                flex_direction: FlexDirection::ColumnReverse,
+                ..default()
+            },
+            debug_ui_background(),
+            Name::new("Health UI"),
+            HealthUi,
+        )
+    }
+
+    /// Bundle for a single heart in the health UI, either filled or empty.
+    pub fn health_ui_heart_bundle(heart_num: usize, textures: &UiTextureAssets) -> impl Bundle {
+        (
+            Name::new("Health Heart"),
+            ImageNode {
+                image: textures.heart.clone(),
+                image_mode: NodeImageMode::Auto,
+                ..default()
+            },
+            Node {
+                width: Val::Px(30.0),
+                height: Val::Px(30.0),
+                margin: UiRect::all(Val::Px(4.0)),
+                ..default()
+            },
+            HealthUiHeart(heart_num),
+        )
+    }
+
+    pub fn update_health_ui(
+        mut health_ui_heart_query: Query<(Entity, &HealthUiHeart, &mut ImageNode)>,
+        health_ui_entity: Single<Entity, With<HealthUi>>,
+        health: Single<&Health, With<Player>>,
+        textures: Res<UiTextureAssets>,
+        mut commands: Commands,
+    ) {
+        let mut max_heart_seen = 0;
+        let factor = 1.0;
+        let current_health_i = (health.current / factor) as usize;
+        let max_health_i = (health.max / factor) as usize;
+
+        // Update existing hearts, despawn if over max, color if over current
+        // Caution: Here be many off-by-one errors, or potential for.
+        for (heart_entity, heart, mut image_node) in health_ui_heart_query.iter_mut() {
+            max_heart_seen = max_heart_seen.max(heart.0);
+            if heart.0 > max_health_i {
+                // Despawn
+                info!("Despawning heart ui {}", heart.0);
+                commands.entity(heart_entity).despawn_children().despawn();
+            } else if heart.0 < current_health_i {
+                image_node.color = Color::WHITE;
+            } else {
+                image_node.color = Color::srgb(0.5, 0.5, 0.5);
+            }
+        }
+
+        // Spawn any more due to max increase
+        // Caution: Here be many off-by-one errors, or potential for.
+        if max_heart_seen < (max_health_i - 1) {
+            for i in (max_heart_seen)..max_health_i {
+                info!("Spawning heart ui {}", i);
+                commands.entity(*health_ui_entity).with_children(|parent| {
+                    parent.spawn(health_ui_heart_bundle(i, &textures));
+                });
+            }
+        }
+    }
+}
+
 mod reloading {
     use bevy::prelude::*;
 
     use crate::{
-        core::ui_components::ContinuousRotate, loading::UiTextureAssets, projectile::Quiver,
+        core::ui_components::{ContinuousRotate, debug_ui_background},
+        loading::UiTextureAssets,
+        projectile::Quiver,
     };
     #[derive(Component, Reflect)]
     pub(super) struct ReloadingUi;
@@ -145,7 +247,7 @@ mod reloading {
                 display: Display::None,
                 ..default()
             },
-            BackgroundColor(Color::NONE),
+            debug_ui_background(),
             Name::new("Reloading UI"),
             ReloadingUi,
             children![(
@@ -191,19 +293,37 @@ mod reloading {
 mod abilities {
     use bevy::prelude::*;
 
-    use crate::loading::UiTextureAssets;
+    use crate::{core::ui_components::debug_ui_background, loading::UiTextureAssets};
 
     #[derive(Component, Reflect)]
     pub struct IconReloadingOverlay {
         pub max_height: f32,
     }
 
+    pub(super) fn update_reloading_icon_overlay(
+        mut query: Query<(&mut Node, &IconReloadingOverlay)>,
+        skill_slots: Single<&crate::player_skills::SkillSlots>,
+    ) {
+        for (mut node, overlay) in query.iter_mut() {
+            let pct = skill_slots.get_skill_slot(1);
+            let pct = match pct {
+                Some(crate::player_skills::OptionOrLocked::Some(skill)) => {
+                    skill.cooldown_timer.fraction_remaining()
+                }
+                _ => 0.0,
+            };
+            node.height = Val::Px(overlay.max_height * pct);
+        }
+    }
+
+    /// This bundle is a grey overlay over the skill icon that covers to show cooldown.
     fn reloading_icon_overlay_bundle() -> impl Bundle {
         (
             Node {
                 width: Val::Px(40.0),
                 height: Val::Px(20.0),
                 position_type: PositionType::Absolute,
+                bottom: Val::ZERO,
                 ..default()
             },
             BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.5)),
@@ -224,7 +344,7 @@ mod abilities {
                 flex_direction: FlexDirection::Row,
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.0, 0.0, 1.0, 1.0)),
+            debug_ui_background(),
             Name::new("Ability UI"),
             children![(
                 ImageNode {

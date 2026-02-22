@@ -1,5 +1,7 @@
 use avian2d::prelude::{Physics, PhysicsTime};
-use bevy::{ecs::error::info, prelude::*, ui, ui_render::ui_texture_slice_pipeline};
+use bevy::prelude::*;
+use bevy_prng::WyRand;
+use bevy_rand::global::GlobalRng;
 use rand::distr::Distribution;
 
 use crate::uis::level_up_cards::DisplayLevelUpCards;
@@ -46,11 +48,11 @@ fn leveling_up_transitions(
 #[derive(Reflect, Message)]
 pub struct LeveledUp;
 
-fn gen_card_options() -> Vec<LevelUpCard> {
+fn gen_card_options(rng: &mut impl rand::RngExt) -> Vec<LevelUpCard> {
     let mut options = Vec::new();
     for _ in 0..3 {
-        let kind: CardKind = rand::random();
-        let rarity: CardRarity = rand::random();
+        let kind: CardKind = rng.random();
+        let rarity: CardRarity = rng.random();
         options.push(LevelUpCard { kind, rarity });
     }
     options
@@ -60,6 +62,7 @@ fn level_up_events(
     mut commands: Commands,
     mut events: MessageReader<LeveledUp>,
     mut leveling_up: ResMut<LevelingUp>,
+    mut rng: Single<&mut WyRand, With<GlobalRng>>,
 ) {
     // Only consume events if not already leveling up
     if !(**leveling_up) {
@@ -67,7 +70,7 @@ fn level_up_events(
             leveling_up.0 = true;
 
             commands.trigger(DisplayLevelUpCards {
-                options: gen_card_options(),
+                options: gen_card_options(&mut rng),
             });
         }
     }
@@ -117,7 +120,7 @@ impl CardRarity {
 }
 
 impl Distribution<CardRarity> for rand::distr::StandardUniform {
-    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> CardRarity {
+    fn sample<R: rand::Rng + rand::RngExt + ?Sized>(&self, rng: &mut R) -> CardRarity {
         let roll: f32 = rng.random();
         if roll < 0.5 {
             CardRarity::Common
@@ -164,7 +167,7 @@ impl CardKind {
 }
 
 impl Distribution<CardKind> for rand::distr::StandardUniform {
-    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> CardKind {
+    fn sample<R: rand::Rng + rand::RngExt + ?Sized>(&self, rng: &mut R) -> CardKind {
         let roll = rng.random_range(0..5);
         match roll {
             0 => CardKind::IncreaseHealth,
@@ -174,11 +177,4 @@ impl Distribution<CardKind> for rand::distr::StandardUniform {
             _ => CardKind::IncreasePenetration,
         }
     }
-}
-
-pub trait GenLevelUpCard {
-    fn name(&self) -> &str;
-    fn description(&self) -> String;
-
-    fn apply(&self, rarity: CardRarity, player: &mut crate::player::PlayerParameters);
 }
