@@ -58,7 +58,7 @@ fn spawn_decider(
     time: Res<Time>,
     mut timer: Local<SpawnTimer>,
     mut event_writer: MessageWriter<SpawnEnemy>,
-    floor_query: Query<&GridCoords, With<crate::level::Floor>>,
+    floor_query: Query<&GridCoords, With<crate::level_loader::Floor>>,
     player_transform: Single<&Transform, With<Player>>,
     enemies: Query<Entity, With<Enemy>>,
     mut rng: Single<&mut WyRand, With<GlobalRng>>,

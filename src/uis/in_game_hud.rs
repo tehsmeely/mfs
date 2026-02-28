@@ -18,6 +18,7 @@ impl Plugin for InGameHudPlugin {
                     health::update_health_ui,
                     reloading::update_reloading_ui,
                     abilities::update_reloading_icon_overlay,
+                    timer::update_timers,
                 )
                     .run_if(in_state(GameState::Playing)),
             );
@@ -37,7 +38,8 @@ fn setup(mut commands: Commands, ui_textures: Res<UiTextureAssets>) {
             (quiver::quiver_ui_bundle()),
             (health::health_ui_bundle()),
             (reloading::reloading_ui_bundle(&ui_textures)),
-            (abilities::ability_ui_bundle(&ui_textures))
+            (abilities::ability_ui_bundle(&ui_textures)),
+            (timer::timer_ui_bundle())
         ],
     ));
 }
@@ -363,6 +365,51 @@ mod abilities {
                 children![reloading_icon_overlay_bundle()],
             )],
         )
+    }
+}
+
+mod timer {
+    use bevy::prelude::*;
+
+    use crate::{core::ui_components::debug_ui_background, loading::UiTextureAssets};
+
+    #[derive(Component, Reflect)]
+    pub struct TimerUi;
+
+    /// Bundle for the container
+    pub fn timer_ui_bundle() -> impl Bundle {
+        (
+            Node {
+                height: Val::Px(50.0),
+                width: Val::Percent(100.0),
+                position_type: PositionType::Absolute,
+                top: Val::ZERO,
+                justify_content: JustifyContent::End,
+                align_content: AlignContent::Center,
+                flex_direction: FlexDirection::RowReverse,
+                ..default()
+            },
+            debug_ui_background(),
+            Name::new("Timer UI"),
+            TimerUi,
+            children![(
+                Text::new("00"),
+                Name::new("Timer Text"),
+                TextFont {
+                    font_size: 33.0,
+                    ..default()
+                },
+                TextColor(Color::WHITE),
+            )],
+        )
+    }
+
+    pub fn update_timers(
+        //mut quiver_ui_arrow_query: Query<(Entity, &QuiverUiArrow, &mut ImageNode)>,
+        ui_entity: Single<Entity, With<TimerUi>>,
+        textures: Res<UiTextureAssets>,
+        mut commands: Commands,
+    ) {
     }
 }
 

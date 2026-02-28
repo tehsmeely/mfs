@@ -17,7 +17,7 @@ use crate::{
         },
     },
     input::Action,
-    level::SpawnPoint,
+    level_loader::SpawnPoint,
     loading::TextureAssets,
     player_skills::{OptionOrLocked, Skill, SkillEffect, SkillSlots},
     projectile::Quiver,

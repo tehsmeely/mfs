@@ -1,8 +1,4 @@
-use bevy::{
-    ecs::error::ErrorContext,
-    prelude::*,
-    remote::{RemotePlugin, http::RemoteHttpPlugin},
-};
+use bevy::{ecs::error::ErrorContext, prelude::*};
 
 use avian2d::prelude::*;
 
@@ -22,7 +18,7 @@ mod cursor;
 mod drops;
 mod enemy;
 mod input;
-mod level;
+mod level_loader;
 mod loading;
 mod player;
 mod player_levelup;
@@ -50,7 +46,7 @@ impl Plugin for GamePlugin {
                 player::PlayerPlugin,
                 enemy::EnemyPlugin,
                 camera::CameraPlugin,
-                level::LevelPlugin,
+                level_loader::LevelPlugin,
                 cursor::CursorPlugin,
                 projectile::ProjectilePlugin,
                 walls::WallPlugin,
@@ -87,17 +83,26 @@ fn log_error(err: BevyError, ctx: ErrorContext) {
     error!("Error: {} ({:?})", err, ctx);
 }
 
+#[cfg(not(target_family = "wasm"))]
+fn remote_plugins(app: &mut App) {
+    app.add_plugins(bevy::remote::RemotePlugin::default());
+    app.add_plugins(bevy::remote::http::RemoteHttpPlugin::default());
+}
+#[cfg(target_family = "wasm")]
+fn remote_plugins(app: &mut App) {}
+
 fn main() {
-    App::new()
-        .set_error_handler(log_error)
+    let mut app = App::new();
+    app.set_error_handler(log_error)
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
-        .add_plugins(RemotePlugin::default())
-        .add_plugins(RemoteHttpPlugin::default())
         .add_plugins(InputManagerPlugin::<input::Action>::default())
         .add_plugins(PhysicsPlugins::default().with_length_unit(20.0))
-        .add_plugins(PhysicsDebugPlugin)
         .add_plugins(EguiPlugin::default())
         .add_plugins(EntropyPlugin::<WyRand>::default())
-        .add_plugins(GamePlugin)
-        .run();
+        .add_plugins(GamePlugin);
+    if cfg!(feature = "debug_physics_render") {
+        app.add_plugins(PhysicsDebugPlugin);
+    }
+    remote_plugins(&mut app);
+    app.run();
 }

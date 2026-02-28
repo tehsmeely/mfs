@@ -77,9 +77,9 @@ fn params_ui(
     mut player: Single<&mut PlayerParameters, With<crate::player::Player>>,
 ) -> Result {
     egui::Window::new("Player Parameters")
-        .anchor(Align2::RIGHT_TOP, bevy_egui::egui::Vec2::ZERO)
+        .anchor(Align2::RIGHT_TOP, bevy_egui::egui::Vec2::new(0.0, 50.0))
         .collapsible(true)
-        .movable(false)
+        .movable(true)
         .title_bar(true)
         .default_open(false)
         .show(context.ctx_mut()?, |ui| {
